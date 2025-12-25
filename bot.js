@@ -5,7 +5,7 @@ const axios = require('axios');
 // ==========================================
 const TELEGRAM_TOKEN = '8037288698:AAHTIWD02O1qWZf-7sZwKLZXSvrYPj1TbPw';
 const CHAT_ID = '-1003301009665';
-const UMBRAL_ALERTA = 0.50; // Se activa si el spread es mayor a 0.50%
+const UMBRAL_ALERTA = -1; // Se activa si el spread es mayor a 0.50%
 
 async function monitorear() {
     console.log("🔍 Iniciando escaneo de mercado...");
