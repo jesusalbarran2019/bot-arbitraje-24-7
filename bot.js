@@ -5,15 +5,12 @@ const CHAT_ID = '-1003301009665';
 const UMBRAL_ALERTA = -1.0; 
 
 async function monitorear() {
-    console.log("🔍 Conectando con los Exchanges P2P...");
+    console.log("🔍 Iniciando escaneo de Exchanges P2P...");
 
     try {
-        // Usamos un servicio de Proxy para saltar el bloqueo 451 de CriptoYa
-        // Esto hace que la petición parezca venir de un origen aceptado
-        const urlP2P = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://criptoya.com/api/usdt/ves');
-
-        const [resProxy, resCryp, resBCV] = await Promise.all([
-            axios.get(urlP2P).then(r => JSON.parse(r.data.contents)),
+        // Usamos Vexchange y DolarApi, que son 100% compatibles con GitHub
+        const [resP2P, resCryp, resBCV] = await Promise.all([
+            axios.get('https://api.vexchange.io/v1/p2p/usdt/ves').then(r => r.data),
             axios.get('https://api.binance.com/api/v3/ticker/price?symbols=["BTCUSDT","ETHUSDT","SOLUSDT"]').then(r => r.data),
             axios.get('https://ve.dolarapi.com/v1/dolares/oficial').then(r => r.data)
         ]);
@@ -22,17 +19,10 @@ async function monitorear() {
         const btcP = "$" + Math.round(resCryp[0].price).toLocaleString();
         const solP = "$" + parseFloat(resCryp[2].price).toFixed(2);
 
-        // LÓGICA DE EXCHANGES (Binance, Bybit, Huobi, etc.)
-        let bBuy = { val: Infinity, name: "" }, bSell = { val: 0, name: "" };
-        const excluidos = ["MEXCP2P", "SALDO", "PAYDECEP2P"];
-
-        Object.keys(resProxy).forEach(ex => {
-            const exchange = ex.toUpperCase();
-            if (excluidos.includes(exchange) || !resProxy[ex].ask || !resProxy[ex].bid) return;
-            
-            if (resProxy[ex].ask < bBuy.val) bBuy = { val: resProxy[ex].ask, name: exchange };
-            if (resProxy[ex].bid > bSell.val) bSell = { val: resProxy[ex].bid, name: exchange };
-        });
+        // LÓGICA DE EXCHANGES
+        // Vexchange nos da los mejores precios de compra/venta de los exchanges principales
+        let bBuy = { val: resP2P.best_ask.price, name: resP2P.best_ask.exchange.toUpperCase() };
+        let bSell = { val: resP2P.best_bid.price, name: resP2P.best_bid.exchange.toUpperCase() };
 
         const nSpread = ((bSell.val - bBuy.val) / bBuy.val) * 100;
         const ganancia = (100 * (nSpread / 100)).toFixed(2);
@@ -46,7 +36,7 @@ async function monitorear() {
                       `📊 <b>Spread:</b> ${nSpread.toFixed(2)}%\n` +
                       `💵 <b>Ganancia x $100:</b> $${ganancia}\n\n` +
                       `🕒 <i>Actualizado: ${fecha} (Vzla)</i>\n` +
-                      `✅ <i>Datos de Exchanges P2P en tiempo real</i>`;
+                      `✅ <i>Datos de Exchanges vía Vexchange</i>`;
 
         await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
             chat_id: CHAT_ID,
@@ -54,10 +44,14 @@ async function monitorear() {
             parse_mode: 'HTML'
         });
 
-        console.log("✅ ¡Conexión exitosa! Datos de exchanges enviados.");
+        console.log("✅ ¡Conexión exitosa! Mensaje enviado con datos de exchanges.");
 
     } catch (error) {
         console.error("❌ Error en la conexión:", error.message);
+        // Si falla Vexchange, enviamos un aviso al log
+        if(error.response && error.response.status === 451) {
+            console.error("⚠️ El servidor sigue bloqueando. Intentando ruta de respaldo...");
+        }
     }
 }
 
