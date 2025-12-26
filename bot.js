@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const TELEGRAM_TOKEN = '8037288698:AAHTIWD02O1qWZf-7sZwKLZXSvrYPj1TbPw';
 const CHAT_ID = '-1003301009665';
-const UMBRAL_ALERTA = -1.0; // Lo dejamos en negativo para que veas los datos de una vez
+const UMBRAL_ALERTA -1.0; // Lo dejamos en negativo para que veas los datos de una vez
 
 async function getBinanceP2P(tradeType) {
     const url = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
